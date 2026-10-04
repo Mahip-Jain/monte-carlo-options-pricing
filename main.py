@@ -1,47 +1,110 @@
 import numpy as np
 import time
+import math
+
+
+def normal_cdf(x):
+    return 0.5 * (1 + math.erf(x / math.sqrt(2)))
+
+
+def black_scholes_put(S0, K, T, r, q, sigma):
+    d1 = (
+        math.log(S0 / K)
+        + (r - q + 0.5 * sigma**2) * T
+    ) / (sigma * math.sqrt(T))
+
+    d2 = d1 - sigma * math.sqrt(T)
+
+    put_price = (
+        K * math.exp(-r * T) * normal_cdf(-d2)
+        - S0 * math.exp(-q * T) * normal_cdf(-d1)
+    )
+
+    return put_price
+
 
 def monte_carlo_put(S0, K, T, r, q, sigma, N):
     start_time = time.time()
 
+    # Generate N standard normal random variables
     Z = np.random.normal(0, 1, N)
 
+    # Simulate stock price at maturity
     ST = S0 * np.exp(
         (r - q - 0.5 * sigma**2) * T
         + sigma * np.sqrt(T) * Z
     )
 
+    # Put option payoff at maturity
     payoffs = np.maximum(K - ST, 0)
 
+    # Monte Carlo estimate of option price
     option_price = np.exp(-r * T) * np.mean(payoffs)
 
+    # Estimated standard error
     standard_error = (
         np.exp(-r * T)
         * np.std(payoffs, ddof=1)
         / np.sqrt(N)
     )
 
+    # 95% confidence interval
     lower = option_price - 1.96 * standard_error
     upper = option_price + 1.96 * standard_error
 
+    # Exact Black-Scholes price
+    exact_price = black_scholes_put(
+        S0, K, T, r, q, sigma
+    )
+
+    # Absolute pricing error
+    absolute_error = abs(option_price - exact_price)
+
+    # Computational time
     runtime = time.time() - start_time
 
-    return option_price, standard_error, lower, upper, runtime
+    return (
+        N,
+        option_price,
+        standard_error,
+        lower,
+        upper,
+        exact_price,
+        absolute_error,
+        runtime
+    )
 
 
+# Parameters from Task 1
 S0 = 100
 K = 100
 T = 0.5
-r = -0.04
+r = 0.04
 q = 0.02
 sigma = 0.2
 N = 100000
 
-price, error, lower, upper, runtime = monte_carlo_put(
+
+results = monte_carlo_put(
     S0, K, T, r, q, sigma, N
 )
 
+(
+    sample_size,
+    price,
+    standard_error,
+    lower,
+    upper,
+    exact_price,
+    absolute_error,
+    runtime
+) = results
+
+
+print("Sample Size:", sample_size)
 print("Monte Carlo Put Price:", price)
-print("Standard Error:", error)
+print("Estimated Standard Error:", standard_error)
 print("95% Confidence Interval:", (lower, upper))
+print("Exact Black-Scholes Put Price:", exact_price)
+print("Absolute Pricing Error:", absolute_error)
 print("Runtime:", runtime, "seconds")
