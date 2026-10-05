@@ -25,42 +25,33 @@ def black_scholes_put(S0, K, T, r, q, sigma):
 
 def monte_carlo_put(S0, K, T, r, q, sigma, N):
     start_time = time.time()
-
-    # Generate N standard normal random variables
+    
     Z = np.random.normal(0, 1, N)
 
-    # Simulate stock price at maturity
     ST = S0 * np.exp(
         (r - q - 0.5 * sigma**2) * T
         + sigma * np.sqrt(T) * Z
     )
 
-    # Put option payoff at maturity
     payoffs = np.maximum(K - ST, 0)
 
-    # Monte Carlo estimate of option price
     option_price = np.exp(-r * T) * np.mean(payoffs)
 
-    # Estimated standard error
     standard_error = (
         np.exp(-r * T)
         * np.std(payoffs, ddof=1)
         / np.sqrt(N)
     )
 
-    # 95% confidence interval
     lower = option_price - 1.96 * standard_error
     upper = option_price + 1.96 * standard_error
 
-    # Exact Black-Scholes price
     exact_price = black_scholes_put(
         S0, K, T, r, q, sigma
     )
 
-    # Absolute pricing error
     absolute_error = abs(option_price - exact_price)
 
-    # Computational time
     runtime = time.time() - start_time
 
     return (
@@ -74,8 +65,6 @@ def monte_carlo_put(S0, K, T, r, q, sigma, N):
         runtime
     )
 
-
-# Parameters from Task 1
 S0 = 100
 K = 100
 T = 0.5
